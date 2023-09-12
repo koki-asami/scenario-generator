@@ -1,0 +1,3 @@
+[submodule "registers-project-json"]
+	path = registers-project-json
+	url = git@github.com:aces-inc/registers-project-json.git

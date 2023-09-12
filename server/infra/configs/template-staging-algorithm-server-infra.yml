@@ -1,0 +1,63 @@
+# network
+account_id: "xxx"
+shared_services_account_id: "185998387698"
+regions:
+  - ap-northeast-1
+# すでに存在するvpcを使う場合はコメントアウトをはずしてProject名を指定する
+# vpc_base_project: aces-platform
+cidr: 10.2.0.0/16
+transit_gateway_id: tgw-04c0df18223bd4647
+# 存在する場合はコメントアウトをはずす
+# open_id_connect_provider_arn: arn:aws:iam::xxx:oidc-provider/token.actions.githubusercontent.com
+sg_sagemaker_ingress_ports: []
+
+# github repository
+github_owner: aces-inc
+github_repo: project-template
+
+# docker repository
+ECR_REPOSITORY: project-example-staging-algorithm
+ECR_DEPLOY_TAG: deploy
+
+# service
+# 非同期APIで実行するAWSコンポーネント ['sagemaker', 'aws_batch'] (省略すると'aws_batch')
+ASYNC_COMPONENT_SERVICE: aws_batch
+MEM_PROFILE: "1"
+TIME_PROFILE: "1"
+# GPU_PROFILEをonにすると200ms余分にかかるので本番適用は注意
+GPU_PROFILE: "1"
+METRICS_TOPIC_ARN: "arn:aws:sns:ap-northeast-1:185998387698:aces-platform-staging-notify-inference-results"
+REQUEST_LOG_TOPIC_ARN: "arn:aws:sns:ap-northeast-1:185998387698:aces-platform-staging-notify-request-log"
+
+## sagemaker
+SAGEMAKER_DATA_PATH: /opt/ml/model
+# SAGEMAKER_ENDPOINT_NAME (省略時は{Project}-{Env}-{RELEASE_VERSION})
+# SAGEMAKER_ENDPOINT_NAME: aces-platform-project-example-dev-deploy
+SAGEMAKER_INSTANCE_TYPE: ml.g4dn.xlarge
+SAGEMAKER_INITIAL_INSTANCE_COUNT: 1
+SAGEMAKER_MAX_CONCURRENCY: 1
+SAGEMAKER_WEIGHT_SOURCE_S3KEY: shared/weights/deploy.tar.gz
+
+# SAGEMAKER_SERVERLESS https://aces.kibe.la/notes/31525)
+# SAGEMAKER_SERVERLESS: True
+# SAGEMAKER_SERVERLESS_MAX_MB: 6144
+
+## aws batch
+AWS_BATCH_DOCKER_DATA_PATH: /opt/ml/model
+SSM_PARAMETER_BATCH_JOB_DEFINITION: /staging/project-example/aws_batch_job_definition_arn
+aws_batch_shared_memory: 4096
+aws_batch_memory_per_instance: 14336
+# aws_batch_memory_per_instance: 30720
+
+aws_batch_max_job: 6
+aws_batch_min_job: 0
+aws_batch_vcpu_per_instance: 4
+aws_batch_instance_type: g4dn.xlarge
+
+## aws batch (longtime)
+aws_longtime_batch_max_job: 6
+aws_longtime_batch_instance_type: g4dn.xlarge
+batch_trigger_s3_bucket: project-example-staging-batch-trigger
+
+# monitoring
+event_bus_arn: arn:aws:events:ap-northeast-1:185998387698:event-bus/aces-platform-staging-eventbridge-bus-receiver

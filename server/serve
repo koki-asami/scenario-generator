@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+
+# sagemakerのentrypoint (ファイル名固定`serve`)
+
+# This file implements the scoring service shell. You don't necessarily need to modify it for various
+# algorithms. It starts nginx and gunicorn with the correct configurations and then simply waits until
+# gunicorn exits.
+#
+# The flask server is specified to be the app object in wsgi.py
+#
+# We set the following parameters:
+#
+# Parameter                Environment Variable              Default Value
+# ---------                --------------------              -------------
+# number of workers        MODEL_SERVER_WORKERS              the number of CPU cores
+# timeout                  MODEL_SERVER_TIMEOUT              60 seconds
+
+import os
+import signal
+import subprocess
+import sys
+from multiprocessing import shared_memory
+
+SHARED_MEMORY_NAME = 'shared_auth_memory'
+SHARED_MEMORY_SIZE = 4096
+
+model_server_timeout = os.environ.get('MODEL_SERVER_TIMEOUT', 60)
+worker_thread_combinations = {
+    # cpu_core_count: (worker_count, thread_count)
+    1: (1, 1),
+    2: (2, 1),
+    4: (2, 2),
+    8: (4, 2),
+    16: (4, 4),
+    32: (8, 4),
+    48: (8, 6),
+    64: (8, 8),
+    96: (12, 8),
+}
+
+
+def create_shared_auth_memory():
+    try:
+        shared_memory.SharedMemory(create=True, name=SHARED_MEMORY_NAME, size=SHARED_MEMORY_SIZE)
+    except FileExistsError:
+        return
+
+
+def get_shared_auth_memory():
+    return shared_memory.SharedMemory(name=SHARED_MEMORY_NAME)
+
+
+def free_auth_shared_memory():
+    auth_memory = get_shared_auth_memory()
+    auth_memory.unlink()
+
+
+def sigterm_handler(nginx_pid, gunicorn_pid):
+    free_auth_shared_memory()
+
+    try:
+        os.kill(nginx_pid, signal.SIGQUIT)
+    except OSError:
+        pass
+    try:
+        os.kill(gunicorn_pid, signal.SIGTERM)
+    except OSError:
+        pass
+
+    sys.exit(0)
+
+
+def start_server():
+
+    create_shared_auth_memory()
+
+    cpu_count = os.cpu_count()
+    if cpu_count not in worker_thread_combinations:
+        print('undefined cpu core count passed: {}'.format(cpu_count))
+        sys.exit(1)
+    # workers, threads = worker_thread_combinations[cpu_count]
+    workers, threads = worker_thread_combinations[2]
+    print('Starting the inference server with {} workers and {} threads.'.format(workers, threads))
+
+    # link the log streams to stdout/err so they will be logged to the container logs
+    subprocess.check_call(['ln', '-sf', '/dev/stdout', '/var/log/nginx/access.log'])
+    subprocess.check_call(['ln', '-sf', '/dev/stderr', '/var/log/nginx/error.log'])
+
+    nginx = subprocess.Popen(['nginx', '-c', '/opt/program/nginx.conf'])
+    gunicorn = subprocess.Popen(['gunicorn',
+                                 '--timeout', str(model_server_timeout),
+                                 '--graceful-timeout', str(model_server_timeout),
+                                 '-k', 'gthread',
+                                 '-b', 'unix:/tmp/gunicorn.sock',
+                                 '--workers', str(workers),
+                                 '--threads', str(threads),
+                                 # '--access-logfile', '-',
+                                 'wsgi:app'])
+
+    signal.signal(signal.SIGTERM, lambda a, b: sigterm_handler(nginx.pid, gunicorn.pid))
+
+    # If either subprocess exits, so do we.
+    pids = set([nginx.pid, gunicorn.pid])
+    while True:
+        pid, _ = os.wait()
+        if pid in pids:
+            break
+
+    sigterm_handler(nginx.pid, gunicorn.pid)
+    print('Inference server exiting')
+
+
+if __name__ == '__main__':
+    start_server()

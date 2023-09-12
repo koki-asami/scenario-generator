@@ -1,0 +1,22 @@
+name: Lint
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    container:
+      image: acesdev/algo-base:awscli2.1.25-poetry1.2.1-tensorrt8.2.3.0-python3.8.7-cuda11.1-cudnn8-devel-ubuntu18.04
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+      - uses: aces-inc/ssh-agent@v0.4.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Install pip packages
+        run: |
+          GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" poetry install --no-root
+      - name: Lint with flake8
+        run: |
+          pflake8 --version
+          pflake8 --count --show-source --statistics

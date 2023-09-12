@@ -1,0 +1,14 @@
+.git
+.DS_Store
+**/.terraform/*
+terraform.tfstate.*.backup
+*.pyc
+*.egg-info
+.idea/*
+__pycache__
+.venv/
+
+# VSCode
+.vscode/
+
+tmp/

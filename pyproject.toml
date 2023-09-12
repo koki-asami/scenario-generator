@@ -1,16 +1,16 @@
 [tool.poetry]
-name = "project_senario_generator"
-version = "0.0.1"
-description = "project-senario-generator created by Koki Asami."
+name = "scenario-generator"
+version = "0.2.3"
+description = "scenario-generator created by ACES."
 authors = ["{authors of this repository}"]
-repository = "https://github.com/aces-inc/project-{template}"
+repository = "https://github.com/koki-asami/senario-generator.git"
 # If you want to use project repository as package.
-# packages = [{ include = "project_{template}" }]
+# packages = [{ include = "project_scenario-generator" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.9"
-langchain = "*"
 japanize_matplotlib = "*"
+langchain = "*"
 numpy = "1.23.3"
 opencv-contrib-python-headless = "*"
 pandas = "*"
@@ -32,6 +32,7 @@ jupyterlab = "*"
 matplotlib = "*"
 pep8-naming = "*"
 pyproject-flake8 = "*"
+# registers = {git = "ssh://git@github.com/aces-inc/registers.git", tag = "v1.1.4" }
 seaborn = "*"
 
 [tool.isort]

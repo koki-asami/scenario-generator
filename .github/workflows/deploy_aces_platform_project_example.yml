@@ -1,0 +1,108 @@
+name: deploy example.
+on:
+  workflow_dispatch:
+    branches:
+      - '**'
+  # push:
+  #   branches:
+  #     - 'test/sagemaker'
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-20.04
+    env:
+      # Env: dev
+      Env: staging
+      Project: aces-platform-project-example
+      DEPLOY_TAG: deploy
+      # AWS_ROLE_ARN: arn:aws:iam::{REPLACE_YOUR_ACOUNT_ID}:role/{REPLACE_YOUR_PROJECT_NAME}-{REPLACE_YOUR_ENV}-github-actions-role
+      AWS_ROLE_ARN: arn:aws:iam::566399633171:role/aces-platform-project-example-stag-github-actions-role
+      # TENANT_ID: {REPLACE_YOUR_TENANT_ID}
+      TENANT_ID: 06fb9ab1-325d-4506-bca3-f0b239ac70c6
+      FRONTEND_IMAGE_PATH: server/algorithms/example_algorithm.png
+    strategy:
+      matrix:
+        include:
+          - region: 'ap-northeast-1'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Set Environment Variables
+        env:
+          AWS_REGION: ${{ matrix.region }}
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH=$PATH:$HOME/.local/bin
+
+          # e.g. DEPLOY_TAG bunkyo (GITHUB_REF deploy/bunkyo/xxx)
+          echo "RELEASE_VERSION=${GITHUB_SHA::8}"
+          echo "RELEASE_VERSION=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ matrix.region }}
+
+      - name: Configure SSH agent
+        uses: aces-inc/ssh-agent@v0.4.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push docker image.
+        id: build-image
+        env:
+          DOCKER_BUILDKIT: 1
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY_ALGORITHM: ${{ env.Project }}-${{ env.Env }}-algorithm
+        run: |
+          docker build \
+            --build-arg RELEASE_VERSION=$DEPLOY_TAG \
+            --build-arg BUILDKIT_INLINE_CACHE=true \
+            --cache-from=$ECR_REGISTRY/$ECR_REPOSITORY_ALGORITHM:$DEPLOY_TAG \
+            --ssh default \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_ALGORITHM:$DEPLOY_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_ALGORITHM:$RELEASE_VERSION \
+            -f server/Dockerfile \
+            .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_ALGORITHM:$DEPLOY_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_ALGORITHM:$RELEASE_VERSION
+
+      - name: Deploy sagemaker
+        env:
+          RELEASE_VERSION: ${{ env.DEPLOY_TAG }}
+          AWS_DEFAULT_REGION: ${{ matrix.region }}
+          REPOSITORY_URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.Project }}-${{ env.Env }}-algorithm
+        run: |
+          export PATH=$HOME/.poetry/bin:$PATH
+          cd server/infra/deploy
+          poetry install --no-root
+          poetry run python deploy.py
+
+      - name: Register ACES Platform service discovery
+        uses: aws-actions/aws-codebuild-run-build@v1
+        with:
+          project-name: ${{ env.Project }}-${{ env.Env }}-register-service
+          env-vars-for-codebuild: RELEASE_VERSION, ACES_PLATFORM_REGISTER_URL
+        env:
+          RELEASE_VERSION: ${{ env.DEPLOY_TAG }}
+          ACES_PLATFORM_REGISTER_URL: http://api-${{ env.Env }}.aces-platform-${{ env.Env }}.internal/internal/tenants/${{ env.TENANT_ID }}/services
+
+      - name: Register frontend image
+        run: |
+          aws s3 cp $FRONTEND_IMAGE_PATH s3://$Project-$Env/tenants/$TENANT_ID/private_algorithm/

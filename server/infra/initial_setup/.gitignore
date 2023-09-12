@@ -1,0 +1,14 @@
+# IDE
+.vscode
+
+# node
+node_modules
+
+# cdk
+cdk.out
+cdk.context.json
+
+# python
+.env
+__pycache__
+*.egg-info/

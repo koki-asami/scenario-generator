@@ -1,0 +1,44 @@
+{
+    "plan_id": 1,
+    "overflow_mode": 1,
+    "services": [
+        {
+            "name": "example_simple_algorithm",
+            "type": "simple",
+            "point_per_frame": 0,
+            "results_to_show_default": true,
+            "algorithms": ["NA"],
+            "title": "Example Simple Algorithm",
+            "subtitle": "サンプルアルゴリズム",
+            "content": "画像からパーツの種類と位置を高速かつ高精度に検出。",
+            "image_key": "example_algorithm.png"
+        },
+        {
+            "name": "example_file_algorithm",
+            "type": "file",
+            "point_per_frame": 0,
+            "results_to_show_default": false,
+            "algorithms": ["NA"],
+            "input_mimes": ["application/json", "application/zip"],
+            "output_mimes": ["application/json", "application/zip"],
+            "title": "Example File Algorithm",
+            "subtitle": "サンプルファイルアルゴリズム",
+            "content": "ファイルからパーツの種類と位置を高速かつ高精度に検出。",
+            "image_key": "example_algorithm.png"
+        },
+        {
+            "name": "example_file_batch_algorithm",
+            "type": "file",
+            "point_per_frame": 0,
+            "results_to_show_default": false,
+            "algorithms": ["NA"],
+            "input_mimes": ["video/mp4", "audio/wav"],
+            "output_mimes": ["video/mp4", "audio/wav"],
+            "title": "Example File Algorithm (AWS Batch)",
+            "subtitle": "サンプルファイルアルゴリズム(AWS Batch)",
+            "content": "ファイルからパーツの種類と位置を高速かつ高精度に検出。",
+            "image_key": "example_algorithm.png",
+            "async_component_service": "aws_batch"
+        }
+    ]
+}

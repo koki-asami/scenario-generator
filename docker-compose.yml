@@ -1,0 +1,59 @@
+version: "2.4"
+
+x-template: &template
+  build:
+    context: .
+  environment:
+    - SSH_AUTH_SOCK=$DOCKER_SSH_AUTH_SOCK
+  env_file:
+    - .env
+  image: $DOCKER_IMAGE
+  runtime: $DOCKER_RUNTIME
+  shm_size: $DOCKER_SHM_SIZE
+  volumes:
+    - .:/root/workspace
+    - $HOST_DATADRIVE:/root/datadrive
+    - $SSH_AUTH_SOCK:/ssh-agent
+    - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
+    - ./registers-project-json:/root/registers-json
+    - ./db:/usr/share/registers
+
+services:
+  registers:
+    <<: *template
+    command: >
+      /bin/bash -c "registers migrate && registers runserver 0:8000"
+    ports:
+      - $REGISTERS_PORT:8000
+
+  project:
+    <<: *template
+    command: /bin/bash
+    # depends_on:
+    #   - registers
+
+  sagemaker:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    command: ["flask", "run", "--host", "0.0.0.0", "--port", "8080", "--debugger", "--reload"]
+    environment:
+      - SSH_AUTH_SOCK=$DOCKER_SSH_AUTH_SOCK
+    env_file:
+      - .env
+    image: template-local-algorithm
+    networks:
+      - default
+    ports:
+      - 8080:8080
+    runtime: ${DOCKER_RUNTIME}
+    shm_size: ${DOCKER_SHM_SIZE}
+    volumes:
+      - ./server:/opt/program
+      - python-packages:/root/.local
+      - ${SSH_AUTH_SOCK}:$DOCKER_SSH_AUTH_SOCK
+      - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
+      - $HOST_DATADRIVE:/opt/ml/model
+
+volumes:
+  python-packages:

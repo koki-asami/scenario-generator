@@ -9,6 +9,7 @@ import os
 import openai
 import datetime
 
+
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size = 1000,
     chunk_overlap  = 20,

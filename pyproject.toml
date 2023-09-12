@@ -1,0 +1,53 @@
+[tool.poetry]
+name = "project_senario_generator"
+version = "0.0.1"
+description = "project-senario-generator created by Koki Asami."
+authors = ["{authors of this repository}"]
+repository = "https://github.com/aces-inc/project-{template}"
+# If you want to use project repository as package.
+# packages = [{ include = "project_{template}" }]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.9"
+langchain = "*"
+japanize_matplotlib = "*"
+numpy = "1.23.3"
+opencv-contrib-python-headless = "*"
+pandas = "*"
+Pillow = "*"
+PyYAML = "*"
+scikit-learn = ">=0.23.1"
+tqdm = "*"
+xlrd = "*"
+
+[tool.poetry.dev-dependencies]
+add-trailing-comma = "*"
+autopep8 = "*"
+flake8 = "*"
+flake8-commas = "*"
+flake8-isort = "*"
+flake8-quotes = "*"
+jupyter = "*"
+jupyterlab = "*"
+matplotlib = "*"
+pep8-naming = "*"
+pyproject-flake8 = "*"
+seaborn = "*"
+
+[tool.isort]
+include_trailing_comma = true
+line_length = 120
+multi_line_output = 5
+
+[tool.flake8]
+max-line-length = 120
+exclude = [
+  "*/__init__.py",
+  "*/.venv/*",
+  "server/wsgi.py",
+  "server/infra/*",
+]
+
+[build-system]
+requires = ["poetry-core>=1.3.2"]
+build-backend = "poetry.core.masonry.api"

@@ -16,16 +16,21 @@ np.random.seed(123)
 class RecoveryStateGenerator:
     def __init__(
             self,
+            disaster_scale='中規模',
             recovery_state=['緊急対応期', '応急復旧期', '本格復旧準備期', '本格復旧期', '復旧完了'],
     ):
         self.thres = 0.1
-        self.delta = 0.01
+        self.delta = {
+            '小規模': 0.1,
+            '中規模': 0.01,
+            '大規模': 0.005,
+        }[disaster_scale]
         self.recovery_state = recovery_state
 
     def __call__(self):
         if np.random.rand() < self.thres:
-            print(f'\nMove to next state: \
-                  {self.recovery_state[0]} -> {self.recovery_state[1]}')
+            # print(f'\nMove to next state: \
+            #       {self.recovery_state[0]} -> {self.recovery_state[1]}')
             current_recovery_state = self.recovery_state.pop(0)
             self.thres = 0.1
         else:
@@ -35,7 +40,7 @@ class RecoveryStateGenerator:
 
 
 class ScenarioGenerator():
-    def __init__(self):
+    def __init__(self, disaster_name='地震', disaster_scale='中規模'):
         # set initial instruction message
         status = """
             # 命令書
@@ -66,21 +71,26 @@ class ScenarioGenerator():
             'role': 'system',
             'content': status,
         }
-        # create event state
+        self.disaster_name = disaster_name
         self.thres = 0.1
-        self.delta = 0.01
+        self.disaster_scale = disaster_scale
+        self.delta = {
+            '小規模': 0.1,
+            '中規模': 0.01,
+            '大規模': 0.005,
+        }[self.disaster_scale]
         self.prev_events = []
         self.event = None
         self.prev_recovery_state = None
 
-    def __call__(self, disaster_scale='中規模', recovery_state='緊急対応期', number_of_event=1):
+    def __call__(self, recovery_state, number_of_event=1):
         # check whether tp generate next event
         move2next_recovery_state = self.prev_recovery_state != recovery_state
         move2next_event = np.random.rand() < self.thres
 
         if move2next_recovery_state or move2next_event:
             input_ = f"""
-                {disaster_scale}災害における{recovery_state}に起こりうるイベント名を{number_of_event}個出力してください。
+                {self.disaster_scale}の{self.disaster_name}災害における{recovery_state}に起こりうるイベント名を{number_of_event}個出力してください。
                 ただし、過去に出力した以下のイベントは出力しないでください。
                 過去に出力したイベント: {self.prev_events}
                 出力はイベント名のみにし、不要な説明は省いてください。
@@ -103,13 +113,12 @@ class ScenarioGenerator():
         return self.event
 
 
-def generate_scenario(out_path):
+def generate_scenario(disaster_name, disaster_scale, out_path):
     # create output directory
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f'./{out_path.parent}/{out_path.stem}.csv')
 
-    s = RecoveryStateGenerator()
-    e = ScenarioGenerator()
+    s = RecoveryStateGenerator(disaster_scale=disaster_scale)
+    e = ScenarioGenerator(disaster_name=disaster_name, disaster_scale=disaster_scale)
     df = pd.DataFrame(columns=['day', 'recovery_state', 'event'])
     recovery_state = None
     day = 0
@@ -123,9 +132,10 @@ def generate_scenario(out_path):
         """)
         df.loc[len(df)] = [day, recovery_state, event]
         day += 1
-        time.sleep(0.1)
-    print(df)
+        time.sleep(0.5)
+
     # save dataframe into csv
+    print(df)
     df.to_csv(f'./{out_path.parent}/{out_path.stem}.csv')
 
 
@@ -134,6 +144,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Adding optional argument
     parser.add_argument('-o', '--out_path', default='output/scenario', help='Output path')
+    parser.add_argument('-dn', '--disaster_name', default='地震', help='Name of disaster')
+    parser.add_argument('-ds', '--disaster_scale', default='中規模',\
+                        choice=['大規模', '中規模', '小規模'], help='Scale of disaster')
     args = parser.parse_args()
 
-    generate_scenario(out_path=Path(args.out_path))
+    generate_scenario(
+        disaster_name=args.disaster_name,
+        disaster_scale=args.disaster_scale,
+        out_path=Path(args.out_path)
+    )

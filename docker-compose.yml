@@ -1,17 +1,16 @@
 version: "2.3"
 services:
-  registers: &registers
+  algo:
     build:
       context: .
-    command: >
-      /bin/bash -c "registers migrate && registers runserver 0:8000"
     environment:
       - SSH_AUTH_SOCK=$DOCKER_SSH_AUTH_SOCK
+      - OPENAI_API_KEY=$OPENAI_API_KEY
+      - AZURE_API_KEY=$AZURE_API_KEY
+      - AZURE_ENDPOINT=$AZURE_ENDPOINT
     env_file:
       - .env
     image: $DOCKER_IMAGE
-    ports:
-      - $REGISTERS_PORT:8000
     runtime: $DOCKER_RUNTIME
     shm_size: $DOCKER_SHM_SIZE
     volumes:
@@ -19,10 +18,5 @@ services:
       - $HOST_DATADRIVE:/root/datadrive
       - $SSH_AUTH_SOCK:/ssh-agent
       - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
-      - ./registers-json:/root/registers-json
-      - ./db:/usr/share/registers
-  algo:
-    <<: *registers
     command: /bin/bash
-    links:
-      - registers
+    

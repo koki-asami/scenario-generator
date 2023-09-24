@@ -1,6 +1,6 @@
-# cenario-generator
+# scenario-generator
 
-This repository is an implementation of cenario-generator algorithms.
+This repository is an implementation of scenario-generator algorithms.
 
 ## 1. Clone
 
@@ -8,8 +8,6 @@ This repository is an implementation of cenario-generator algorithms.
 $ git clone git@github.com:koki-asami/scenario-generator.git
 $ cd cenario-generator
 ```
-
-NOTE: If `acesvision` is installed via `pip install`, you can also use `poetry run` commands. We listed up the commands.
 
 ## 2. Setup
 
@@ -19,7 +17,7 @@ Before building dokcer container, prepare `.env` file by the following command.
 $ cp .env{.example,}
 ```
 
-After that, set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `.env` file. You can use [this .env](https://github.com/aces-inc/secret-Algorithm/blob/master/aces-vision/.env) for this algorithm.
+After that, set the `OPENAI_API_KEY` in `.env` file.
 
 ## 3. Docker build & run
 

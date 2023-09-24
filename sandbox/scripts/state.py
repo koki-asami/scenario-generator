@@ -100,7 +100,7 @@ class ScenarioGenerator():
             response = openai.ChatCompletion.create(
                 model='gpt-3.5-turbo',
                 messages=self.messages,
-                temperature=0.1,
+                temperature=0.15,
             )
             self.event = response['choices'][0]['message']['content']
             # self.messages.append({'role': 'system', 'content': self.event})
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--out_path', default='output/scenario', help='Output path')
     parser.add_argument('-dn', '--disaster_name', default='地震', help='Name of disaster')
     parser.add_argument('-ds', '--disaster_scale', default='中規模',\
-                        choice=['大規模', '中規模', '小規模'], help='Scale of disaster')
+                        choices=['大規模', '中規模', '小規模'], help='Scale of disaster')
     args = parser.parse_args()
 
     generate_scenario(
